@@ -33,11 +33,17 @@ export async function GET(request: NextRequest) {
 
     // Dynamically determine redirect URI based on request origin
     // This ensures it works in both dev (localhost) and production (Vercel)
-    const origin = request.headers.get("origin") || request.nextUrl.origin;
+    // Prefer the request URL origin as it's more reliable than headers
+    const origin = request.nextUrl.origin;
     const redirectUri = `${origin}/api/auth/callback`;
     
+    // Log for debugging (remove in production if needed)
+    console.log("OAuth redirect URI:", redirectUri);
+    console.log("Request origin:", origin);
+    console.log("Request URL:", request.url);
+    
     const authUrl = getAuthUrl(redirectUri);
-    return NextResponse.json({ authUrl });
+    return NextResponse.json({ authUrl, redirectUri }); // Include redirectUri in response for debugging
   } catch (error: any) {
     console.error("Error generating auth URL:", error);
     return NextResponse.json(

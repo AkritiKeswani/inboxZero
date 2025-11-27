@@ -37,16 +37,41 @@ export default function Dashboard() {
       window.history.replaceState({}, "", "/dashboard");
     } else if (error) {
       console.error("OAuth error:", error);
+      const details = params.get("details");
+      
       // Show helpful error message
       if (error === "access_denied" || error.includes("blocked")) {
         alert(
           "Access blocked. Make sure you've added your email as a test user in Google Cloud Console.\n\n" +
           "Go to: APIs & Services > OAuth consent screen > Test users\n" +
-          "Add: akritikeswani76@gmail.com\n\n" +
-          "See FIX_ACCESS_BLOCKED.md for details."
+          "Add your email address\n\n" +
+          "See README.md for details."
+        );
+      } else if (error === "redirect_uri_mismatch") {
+        const currentUrl = window.location.origin;
+        alert(
+          `Redirect URI mismatch!\n\n` +
+          `Your Vercel URL: ${currentUrl}\n\n` +
+          `You need to add this redirect URI to Google Cloud Console:\n` +
+          `${currentUrl}/api/auth/callback\n\n` +
+          `Steps:\n` +
+          `1. Go to Google Cloud Console → APIs & Services → Credentials\n` +
+          `2. Click on your OAuth 2.0 Client ID\n` +
+          `3. Add "${currentUrl}/api/auth/callback" to Authorized redirect URIs\n` +
+          `4. Click Save\n` +
+          `5. Wait a few minutes for changes to propagate\n\n` +
+          `See README.md for detailed instructions.`
+        );
+      } else if (error === "invalid_grant") {
+        alert(
+          "Invalid grant. This usually means:\n\n" +
+          "1. The authorization code has expired (try again)\n" +
+          "2. The redirect URI doesn't match\n" +
+          "3. The code was already used\n\n" +
+          "Try signing in again."
         );
       } else {
-        alert(`Authentication failed: ${error}`);
+        alert(`Authentication failed: ${error}${details ? `\n\nDetails: ${details}` : ""}`);
       }
       window.history.replaceState({}, "", "/dashboard");
     } else {

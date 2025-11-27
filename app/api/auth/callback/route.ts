@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
     const origin = request.nextUrl.origin;
     const redirectUri = `${origin}/api/auth/callback`;
     
+    // Log for debugging
+    console.log("Callback redirect URI:", redirectUri);
+    console.log("Callback origin:", origin);
+    
     const oauth2Client = getAuthClient(redirectUri);
     const { tokens } = await oauth2Client.getToken(code);
 
@@ -44,11 +48,20 @@ export async function GET(request: NextRequest) {
         request.url
       )
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error exchanging code for token:", error);
+    
+    // Provide more detailed error information
+    let errorMessage = "auth_failed";
+    if (error.message?.includes("redirect_uri_mismatch")) {
+      errorMessage = "redirect_uri_mismatch";
+    } else if (error.message?.includes("invalid_grant")) {
+      errorMessage = "invalid_grant";
+    }
+    
     return NextResponse.redirect(
       new URL(
-        `/dashboard?error=${encodeURIComponent("auth_failed")}`,
+        `/dashboard?error=${encodeURIComponent(errorMessage)}&details=${encodeURIComponent(error.message || "Unknown error")}`,
         request.url
       )
     );
