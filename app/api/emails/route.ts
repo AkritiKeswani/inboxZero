@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchEmails } from "@/lib/gmail";
-import { analyzeEmailWithClaude } from "@/lib/claude";
+import { analyzeEmail } from "@/lib/grok";
 import { getAvailableDates, checkAvailabilityForConstraint } from "@/lib/calendar";
 import { generateSuggestions } from "@/lib/suggestions";
 import { calculatePriorityScore, scoreToPriority, generateDefinitiveAction } from "@/lib/priority";
@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        // Analyze email with Claude (this is the expensive API call)
-        // Pass comprehensive user context so Claude can consider full profile when analyzing
+        // Analyze email with Grok (this is the expensive API call)
+        // Pass comprehensive user context so Grok can consider full profile when analyzing
         const userContext = {
           skills: preferences.skills,
           pastRoles: preferences.pastRoles,
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
           mediumPriorityCompanyTypes: preferences.mediumPriorityCompanyTypes,
           lowPriorityCompanyTypes: preferences.lowPriorityCompanyTypes,
         };
-        const analysis = await analyzeEmailWithClaude(email, userContext);
+        const analysis = await analyzeEmail(email, userContext);
 
         // Calculate priority score based on user preferences
         const priorityScore = calculatePriorityScore(email, analysis, preferences);

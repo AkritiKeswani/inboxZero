@@ -16,17 +16,31 @@ import { EmailRecord, EmailConstraints, EmailSuggestion, FollowUpTracking } from
 import { Email, EmailAnalysis } from "@/types";
 import { EnhancedSuggestion } from "@/lib/suggestions";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+// Lazy initialization to avoid build errors when env vars aren't set
+let supabaseClient: ReturnType<typeof createClient> | null = null;
 
-// Client for server-side operations (uses service role key for admin access)
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+function getSupabaseClient() {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
+  return supabaseClient;
+}
 
 /**
  * Save email record to database
@@ -36,10 +50,15 @@ export async function saveEmailRecord(
   email: Email,
   analysis: EmailAnalysis
 ): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    return; // Skip if database not configured
+  }
+
   try {
+    const client = getSupabaseClient();
     // Upsert email record
-    const { error: emailError } = await supabase
-      .from("email_records")
+    const { error: emailError } = await (client
+      .from("email_records") as any)
       .upsert({
         id: email.id,
         thread_id: email.threadId,
@@ -64,8 +83,8 @@ export async function saveEmailRecord(
     }
 
     // Save constraints
-    const { error: constraintsError } = await supabase
-      .from("email_constraints")
+    const { error: constraintsError } = await (client
+      .from("email_constraints") as any)
       .upsert({
         email_id: email.id,
         intent: analysis.intent,
@@ -97,6 +116,10 @@ export async function saveSuggestions(
   emailId: string,
   suggestions: EnhancedSuggestion[]
 ): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    return; // Skip if database not configured
+  }
+
   try {
     const suggestionsToSave = suggestions.map((suggestion) => ({
       id: suggestion.id,
@@ -115,8 +138,9 @@ export async function saveSuggestions(
       status: "pending" as const,
     }));
 
-    const { error } = await supabase
-      .from("email_suggestions")
+    const client = getSupabaseClient();
+    const { error } = await (client
+      .from("email_suggestions") as any)
       .upsert(suggestionsToSave, {
         onConflict: "id",
       });
@@ -139,8 +163,8 @@ export async function saveSuggestions(
       }));
 
     if (followUps.length > 0) {
-      const { error: followUpError } = await supabase
-        .from("follow_up_tracking")
+      const { error: followUpError } = await (client
+        .from("follow_up_tracking") as any)
         .upsert(followUps, {
           onConflict: "email_id,suggestion_id",
         });
@@ -159,9 +183,14 @@ export async function saveSuggestions(
  * Get pending follow-ups for a user
  */
 export async function getPendingFollowUps(userId: string): Promise<FollowUpTracking[]> {
+  if (!isDatabaseConfigured()) {
+    return [];
+  }
+
   try {
-    const { data, error } = await supabase
-      .from("follow_up_tracking")
+    const client = getSupabaseClient();
+    const { data, error } = await (client
+      .from("follow_up_tracking") as any)
       .select(`
         *,
         email_records!inner(user_id)
@@ -186,10 +215,15 @@ export async function getPendingFollowUps(userId: string): Promise<FollowUpTrack
  * Get overdue follow-ups
  */
 export async function getOverdueFollowUps(userId: string): Promise<FollowUpTracking[]> {
+  if (!isDatabaseConfigured()) {
+    return [];
+  }
+
   try {
+    const client = getSupabaseClient();
     const now = new Date().toISOString();
-    const { data, error } = await supabase
-      .from("follow_up_tracking")
+    const { data, error } = await (client
+      .from("follow_up_tracking") as any)
       .select(`
         *,
         email_records!inner(user_id)
@@ -205,9 +239,9 @@ export async function getOverdueFollowUps(userId: string): Promise<FollowUpTrack
 
     // Update status to overdue
     if (data && data.length > 0) {
-      const ids = data.map((f) => f.id);
-      await supabase
-        .from("follow_up_tracking")
+      const ids = data.map((f: any) => f.id);
+      await (client
+        .from("follow_up_tracking") as any)
         .update({ status: "overdue" })
         .in("id", ids);
     }
@@ -225,9 +259,14 @@ export async function getOverdueFollowUps(userId: string): Promise<FollowUpTrack
 export async function markSuggestionCompleted(
   suggestionId: string
 ): Promise<void> {
+  if (!isDatabaseConfigured()) {
+    return;
+  }
+
   try {
-    const { error } = await supabase
-      .from("email_suggestions")
+    const client = getSupabaseClient();
+    const { error } = await (client
+      .from("email_suggestions") as any)
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", suggestionId);
 
@@ -237,8 +276,8 @@ export async function markSuggestionCompleted(
     }
 
     // Update follow-up tracking
-    await supabase
-      .from("follow_up_tracking")
+    await (client
+      .from("follow_up_tracking") as any)
       .update({
         status: "completed",
         completed_at: new Date().toISOString(),
@@ -255,6 +294,8 @@ export async function markSuggestionCompleted(
  * Check if database is configured
  */
 export function isDatabaseConfigured(): boolean {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   return !!(supabaseUrl && supabaseAnonKey);
 }
 
