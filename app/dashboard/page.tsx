@@ -154,6 +154,7 @@ export default function Dashboard() {
         body: JSON.stringify({ 
           accessToken,
           preferences, // Pass preferences to server for priority calculation
+          userId: userEmail || undefined, // Pass user email as userId for database persistence
         }),
       });
 

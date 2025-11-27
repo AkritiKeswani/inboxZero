@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
         const suggestions = generateSuggestions(
           email,
           analysis,
-          calendarAvailabilities
+          calendarAvailabilities,
+          preferences
         );
 
         // Save to database if configured

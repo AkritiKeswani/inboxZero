@@ -342,6 +342,28 @@ export default function Profile() {
                 How quickly you typically respond to important emails
               </p>
             </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                Resume Filename
+              </label>
+              <input
+                type="text"
+                value={preferences.resumeFilename || ""}
+                onChange={(e) =>
+                  setPreferences((prev) => ({
+                    ...prev,
+                    resumeFilename: e.target.value || undefined,
+                  }))
+                }
+                placeholder="e.g., john-doe-resume-2024.pdf"
+                className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Filename of your resume file. Used when generating &quot;send resume&quot; suggestions. 
+                Leave empty to use default &quot;resume.pdf&quot;.
+              </p>
+            </div>
           </section>
         </div>
 

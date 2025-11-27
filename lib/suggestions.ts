@@ -1,4 +1,5 @@
 import { Email, EmailAnalysis, CalendarAvailability, Suggestion } from "@/types";
+import { UserPreferences } from "@/types/preferences";
 import { format, addDays, parseISO } from "date-fns";
 import { formatTimeSlots } from "./calendar";
 
@@ -11,7 +12,8 @@ export interface EnhancedSuggestion extends Suggestion {
 export function generateSuggestions(
   email: Email,
   analysis: EmailAnalysis,
-  calendarAvailabilities: CalendarAvailability[]
+  calendarAvailabilities: CalendarAvailability[],
+  preferences?: UserPreferences
 ): EnhancedSuggestion[] {
   const suggestions: EnhancedSuggestion[] = [];
   const senderName = analysis.senderInfo?.name || email.fromName;
@@ -61,7 +63,9 @@ export function generateSuggestions(
 
   // Handle send_resume intent
   if (analysis.intent === "send_resume") {
-    const attachmentsNeeded = ["akriti-resume-nov.pdf"]; // Default, could be configurable
+    // Use resume filename from preferences, or fallback to a generic placeholder
+    const resumeFilename = preferences?.resumeFilename || "resume.pdf";
+    const attachmentsNeeded = [resumeFilename];
     const deadline = analysis.constraints.deadlines?.[0];
     const deadlineText = deadline 
       ? ` by ${format(parseISO(deadline), "EEEE, MMMM d")}`

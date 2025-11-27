@@ -29,6 +29,9 @@ export interface UserPreferences {
   
   // Urgent indicators
   urgentIndicators: string[];
+  
+  // Resume filename for send_resume intent
+  resumeFilename?: string; // e.g., "john-doe-resume-2024.pdf"
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -47,5 +50,6 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   lowPriorityKeywords: ["unsubscribe", "newsletter", "promotion", "marketing"],
   preferredResponseTime: 24,
   urgentIndicators: ["deadline", "due", "by", "asap", "urgent", "immediately"],
+  resumeFilename: undefined, // User should set this in their profile
 };
 
