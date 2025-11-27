@@ -75,14 +75,19 @@ export default function Profile() {
             </Link>
             <h1 className="text-2xl font-bold text-black">Profile</h1>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-sm hover:bg-gray-900 transition-colors disabled:opacity-50"
-          >
-            <Save className="h-4 w-4" />
-            {saved ? "Saved!" : "Save"}
-          </button>
+          <div className="flex items-center gap-4">
+            {saved && (
+              <span className="text-sm text-gray-600">Saved to profile</span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-sm hover:bg-gray-900 transition-colors disabled:opacity-50"
+            >
+              <Save className="h-4 w-4" />
+              {saved ? "Saved!" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -99,18 +104,12 @@ export default function Profile() {
                 <input
                   type="text"
                   id="skills-input"
-                  placeholder="e.g., React, TypeScript, Node.js, AWS"
+                  placeholder="e.g., React, TypeScript, Node.js"
                   className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black"
                   onKeyPress={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      const input = e.currentTarget;
-                      const skills = input.value.split(",").map((s) => s.trim()).filter(Boolean);
-                      setPreferences((prev) => ({
-                        ...prev,
-                        skills: [...new Set([...prev.skills, ...skills])],
-                      }));
-                      input.value = "";
+                      addItem("skills", "skills-input");
                     }
                   }}
                 />
@@ -131,7 +130,7 @@ export default function Profile() {
                   ))}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Press Enter to add. These help identify relevant opportunities.
+                  Press Enter to add each skill. These help identify relevant opportunities.
                 </p>
               </div>
 
@@ -202,7 +201,7 @@ export default function Profile() {
                   ))}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Roles you're actively seeking - these boost priority for matching emails
+                  Roles you&apos;re actively seeking - these boost priority for matching emails
                 </p>
               </div>
             </div>
@@ -212,110 +211,71 @@ export default function Profile() {
           <section>
             <h2 className="text-xl font-semibold mb-4 text-black">Company Priorities</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Rank companies by how interested you are in working there
+              Describe company types you&apos;re interested in. AI will automatically categorize emails based on these descriptions.
             </p>
 
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700">
-                  High Priority Companies
+                  High Priority Company Types
                 </label>
-                <input
-                  type="text"
-                  id="high-companies-input"
-                  placeholder="e.g., Stripe, OpenAI, Vercel"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addItem("highPriorityCompanies", "high-companies-input");
-                    }
-                  }}
+                <textarea
+                  value={preferences.highPriorityCompanyTypes}
+                  onChange={(e) =>
+                    setPreferences((prev) => ({
+                      ...prev,
+                      highPriorityCompanyTypes: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., AI companies, unicorn startups ($1B+ valuation), modern tech companies like Figma, xAI, Anthropic"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black min-h-[80px]"
+                  rows={3}
                 />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {preferences.highPriorityCompanies.map((company, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-1 bg-red-50 border border-red-200 text-sm rounded-sm flex items-center gap-1"
-                    >
-                      {company}
-                      <button
-                        onClick={() => updateArray("highPriorityCompanies", company, false)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  AI will match emails from companies that fit this description
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700">
-                  Medium Priority Companies
+                  Medium Priority Company Types
                 </label>
-                <input
-                  type="text"
-                  id="medium-companies-input"
-                  placeholder="e.g., Google, Microsoft, Amazon"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addItem("mediumPriorityCompanies", "medium-companies-input");
-                    }
-                  }}
+                <textarea
+                  value={preferences.mediumPriorityCompanyTypes}
+                  onChange={(e) =>
+                    setPreferences((prev) => ({
+                      ...prev,
+                      mediumPriorityCompanyTypes: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., Enterprise companies like Salesforce, Oracle, Microsoft (not as startup-y)"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black min-h-[80px]"
+                  rows={3}
                 />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {preferences.mediumPriorityCompanies.map((company, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-1 bg-yellow-50 border border-yellow-200 text-sm rounded-sm flex items-center gap-1"
-                    >
-                      {company}
-                      <button
-                        onClick={() => updateArray("mediumPriorityCompanies", company, false)}
-                        className="text-yellow-600 hover:text-yellow-800"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Companies that are interesting but not top priority
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700">
                   Low Priority / Not Interested
                 </label>
-                <input
-                  type="text"
-                  id="low-companies-input"
-                  placeholder="Companies to deprioritize"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addItem("lowPriorityCompanies", "low-companies-input");
-                    }
-                  }}
+                <textarea
+                  value={preferences.lowPriorityCompanyTypes}
+                  onChange={(e) =>
+                    setPreferences((prev) => ({
+                      ...prev,
+                      lowPriorityCompanyTypes: e.target.value,
+                    }))
+                  }
+                  placeholder="e.g., Old-school firms like PWC, accounting firms, traditional consulting companies"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-sm focus:outline-none focus:border-black min-h-[80px]"
+                  rows={3}
                 />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {preferences.lowPriorityCompanies.map((company, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-1 bg-gray-100 text-sm rounded-sm flex items-center gap-1"
-                    >
-                      {company}
-                      <button
-                        onClick={() => updateArray("lowPriorityCompanies", company, false)}
-                        className="text-gray-500 hover:text-black"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Company types to deprioritize or filter out
+                </p>
               </div>
             </div>
           </section>
@@ -383,6 +343,17 @@ export default function Profile() {
               </p>
             </div>
           </section>
+        </div>
+
+        {/* Save Info */}
+        <div className="max-w-4xl mx-auto px-8 pb-8">
+          <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-sm">
+            <p className="text-sm text-gray-600">
+              <strong className="text-black">How saving works:</strong> Click &quot;Save&quot; to store your preferences. 
+              They&apos;re saved locally and will be used automatically when you process emails on the dashboard. 
+              You can come back anytime to update your profile.
+            </p>
+          </div>
         </div>
       </div>
     </div>

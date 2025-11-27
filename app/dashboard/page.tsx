@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Email, Suggestion } from "@/types";
-import { Mail, Calendar, Clock, ExternalLink, CheckCircle2, LogOut, User } from "lucide-react";
+import { Mail, Calendar, Clock, ExternalLink, CheckCircle2, LogOut, User, Github } from "lucide-react";
 import Link from "next/link";
 
 interface EmailResult {
@@ -171,8 +171,28 @@ export default function Dashboard() {
       {/* Header with auth status */}
       <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-8 py-4 flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold text-black">InboxZero</h1>
+            <div className="flex items-center gap-3 text-sm text-gray-600">
+              <a
+                href="https://github.com/AkritiKeswani/inboxZero"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-black transition-colors"
+              >
+                <Github className="h-4 w-4" />
+                <span>GitHub</span>
+              </a>
+              <a
+                href="https://www.keswani.ai/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-black transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span>Website</span>
+              </a>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {userEmail && (

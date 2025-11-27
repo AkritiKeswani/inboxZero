@@ -4,7 +4,12 @@ export interface UserPreferences {
   pastRoles: string[];
   desiredRoles: string[];
   
-  // Company priorities
+  // Company priorities - AI will categorize based on these descriptions
+  highPriorityCompanyTypes: string; // e.g., "AI companies, unicorn startups ($1B+), modern tech like Figma, xAI"
+  mediumPriorityCompanyTypes: string; // e.g., "Enterprise companies like Salesforce, Oracle"
+  lowPriorityCompanyTypes: string; // e.g., "Old-school firms like PWC, accounting firms, traditional companies"
+  
+  // Legacy fields (kept for backward compatibility, but not used)
   highPriorityCompanies: string[];
   mediumPriorityCompanies: string[];
   lowPriorityCompanies: string[];
@@ -30,6 +35,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   skills: [],
   pastRoles: [],
   desiredRoles: [],
+  highPriorityCompanyTypes: "AI companies, unicorn startups ($1B+ valuation), modern tech companies like Figma, xAI, Anthropic",
+  mediumPriorityCompanyTypes: "Enterprise companies like Salesforce, Oracle, Microsoft (not as startup-y)",
+  lowPriorityCompanyTypes: "Old-school firms like PWC, accounting firms, traditional consulting companies",
   highPriorityCompanies: [],
   mediumPriorityCompanies: [],
   lowPriorityCompanies: [],

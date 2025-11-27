@@ -20,6 +20,9 @@ export async function POST(request: NextRequest) {
     // Fetch top 10 emails to avoid rate limits (process fewer at once)
     const emails = await fetchEmails(accessToken, 10);
 
+    // Get user preferences (use provided or defaults)
+    const preferences = userPreferences || DEFAULT_PREFERENCES;
+
     // Process emails sequentially with delays to avoid rate limits
     const results = [];
     
@@ -34,11 +37,20 @@ export async function POST(request: NextRequest) {
         }
 
         // Analyze email with Grok (this is the expensive API call)
-        const analysis = await analyzeEmail(email);
+        // Pass comprehensive user context so Grok can consider full profile when analyzing
+        const userContext = {
+          skills: preferences.skills,
+          pastRoles: preferences.pastRoles,
+          desiredRoles: preferences.desiredRoles,
+          highPriorityRoles: preferences.highPriorityRoles,
+          highPriorityKeywords: preferences.highPriorityKeywords,
+          highPriorityCompanyTypes: preferences.highPriorityCompanyTypes,
+          mediumPriorityCompanyTypes: preferences.mediumPriorityCompanyTypes,
+          lowPriorityCompanyTypes: preferences.lowPriorityCompanyTypes,
+        };
+        const analysis = await analyzeEmail(email, userContext);
 
         // Calculate priority score based on user preferences
-        // Use user preferences if provided, otherwise use defaults
-        const preferences = userPreferences || DEFAULT_PREFERENCES;
         const priorityScore = calculatePriorityScore(email, analysis, preferences);
         const calculatedPriority = scoreToPriority(priorityScore);
 
@@ -56,8 +68,8 @@ export async function POST(request: NextRequest) {
           continue; // Skip only obvious spam
         }
 
-        // Generate definitive action item
-        const definitiveAction = generateDefinitiveAction(email, analysis, calculatedPriority);
+        // Generate definitive action item with preferences context
+        const definitiveAction = generateDefinitiveAction(email, analysis, calculatedPriority, preferences);
 
         // Get calendar availability if scheduling is needed
         // Only check calendar for high-priority scheduling requests

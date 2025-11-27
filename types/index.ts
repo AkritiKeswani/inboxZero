@@ -23,6 +23,8 @@ export interface EmailAnalysis {
   linkedInProfileUrl?: string;
   platform: "email" | "linkedin";
   priority: "high" | "medium" | "low";
+  companyCategory?: "high" | "medium" | "low" | "unknown"; // AI-determined company priority category
+  companyName?: string; // Extracted company name from email
 }
 
 export interface CalendarAvailability {
