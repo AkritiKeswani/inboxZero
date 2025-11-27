@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import { CalendarAvailability } from "@/types";
 import { getAuthClient } from "./gmail";
-import { format, addDays, parseISO, isAfter, isBefore, nextFriday, nextMonday, isMonday, addWeeks, getDay } from "date-fns";
+import { format, addDays, parseISO, isAfter, isBefore, nextFriday, nextMonday, isMonday, addWeeks, getDay, startOfWeek } from "date-fns";
 
 export async function getCalendarClient(accessToken: string) {
   const oauth2Client = getAuthClient();
@@ -161,7 +161,8 @@ export function parseTimeConstraint(constraint: string): { dates: string[]; time
     }
   } else if (constraintLower.includes("this week")) {
     // Add this week's remaining weekdays
-    const thisWeekStart = isMonday(now) ? now : nextMonday(now);
+    // Find the current week's Monday (start of week), not next Monday
+    const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // 1 = Monday
     for (let i = 0; i < 5; i++) {
       const date = addDays(thisWeekStart, i);
       if (isAfter(date, now) || format(date, "yyyy-MM-dd") === format(now, "yyyy-MM-dd")) {

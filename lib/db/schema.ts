@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS email_records (
 -- Email constraints table (extracted by Claude)
 CREATE TABLE IF NOT EXISTS email_constraints (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email_id TEXT NOT NULL REFERENCES email_records(id) ON DELETE CASCADE,
+  email_id TEXT NOT NULL UNIQUE REFERENCES email_records(id) ON DELETE CASCADE,
   intent TEXT NOT NULL CHECK (intent IN ('schedule_call', 'send_resume', 'deadline', 'technical_assessment', 'multi_step_process', 'linkedin_followup', 'other')),
   constraints_json JSONB NOT NULL,
   constraints_text TEXT,
@@ -160,7 +160,8 @@ CREATE TABLE IF NOT EXISTS follow_up_tracking (
   completed_at TIMESTAMPTZ,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(email_id, suggestion_id)
 );
 
 -- Indexes for performance
