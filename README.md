@@ -1,4 +1,4 @@
-# InboxZero - AI Email Assistant for DevRel Job Search
+# InboxZero - AI Email Assistant for Optimized Job Search
 
 An intelligent email assistant that reads context, checks your calendar, and generates actionable follow-ups for job search communications.
 
@@ -94,7 +94,7 @@ An intelligent email assistant that reads context, checks your calendar, and gen
 
 ### Scenario 1: Scheduling with Constraints
 
-**Email:** "Can we chat next Friday afternoon about our DevRel role?"
+**Email:** "Can we chat next Friday afternoon about our role?"
 
 **InboxZero:** Checks calendar → Suggests "Friday 2:30pm works, here's my link"
 
@@ -112,7 +112,7 @@ An intelligent email assistant that reads context, checks your calendar, and gen
 
 ### Scenario 4: LinkedIn Follow-up
 
-**LinkedIn notification email:** "Sarah Johnson sent you a message about DevRel role at Stripe"
+**LinkedIn notification email:** "Sarah Johnson sent you a message about a role at Stripe"
 
 **InboxZero:** 
 - Extracts LinkedIn profile URL

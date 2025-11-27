@@ -109,7 +109,7 @@ export default function Dashboard() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">InboxZero</h1>
           <p className="text-muted-foreground">
-            AI Email Assistant for DevRel Job Search
+            AI Email Assistant for Optimized Job Search
           </p>
         </div>
 

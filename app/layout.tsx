@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "InboxZero - AI Email Assistant for DevRel Job Search",
+  title: "InboxZero - AI Email Assistant for Optimized Job Search",
   description: "Intelligent email assistant that reads context, checks your calendar, and generates actionable follow-ups",
 };
 
