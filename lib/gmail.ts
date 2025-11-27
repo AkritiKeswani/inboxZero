@@ -107,11 +107,11 @@ export async function fetchEmails(
     const emailQuery = query || "is:unread OR in:inbox";
 
   // Fetch most recent emails, prioritizing unread and recent
+  // Note: Gmail API returns messages sorted by internalDate by default (newest first)
   const response = await gmail.users.messages.list({
     userId: "me",
     maxResults,
     q: emailQuery,
-    orderBy: "internalDate", // Get most recent first
   });
 
     const messages = response.data.messages || [];
