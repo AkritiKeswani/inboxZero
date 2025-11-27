@@ -51,44 +51,129 @@ An intelligent email assistant that reads context, checks your calendar, and gen
 - Google Cloud Project with Gmail and Calendar APIs enabled
 - x.ai (Grok) API key
 
-### Setup
+### Quick Setup
 
-1. **Clone the repository**
+1. **Clone and install**
    ```bash
    git clone https://github.com/AkritiKeswani/inboxZero.git
    cd inboxZero
-   ```
-
-2. **Install dependencies**
-   ```bash
    npm install
    ```
 
-3. **Set up environment variables**
+2. **Set up environment variables**
    ```bash
    cp .env.example .env
    ```
    
-   Fill in your credentials:
-   - `GOOGLE_CLIENT_ID`: From Google Cloud Console
+   Fill in:
+   - `GOOGLE_CLIENT_ID`: From [Google Cloud Console](https://console.cloud.google.com/)
    - `GOOGLE_CLIENT_SECRET`: From Google Cloud Console
-   - `GOOGLE_REDIRECT_URI`: `http://localhost:3000/api/auth/callback`
-   - `GROK_API_KEY` or `XAI_API_KEY`: From x.ai Console (your Grok API key - either variable name works)
+   - `GROK_API_KEY` or `XAI_API_KEY`: From [x.ai Console](https://x.ai/)
 
-4. **Configure Google OAuth**
+3. **Configure Google OAuth**
    - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select existing
-   - Enable Gmail API and Calendar API
-   - Create OAuth 2.0 credentials
-   - Add `http://localhost:3000/api/auth/callback` to authorized redirect URIs
+   - Create project → Enable **Gmail API** and **Calendar API**
+   - Create OAuth 2.0 credentials (Web application)
+   - Add redirect URI: `http://localhost:3000/api/auth/callback` (for dev)
+   - Add your email as a test user in OAuth consent screen
 
-5. **Run the development server**
+4. **Run**
    ```bash
    npm run dev
    ```
+   Open [http://localhost:3000](http://localhost:3000)
 
-6. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+## 👤 User Guide
+
+### First Time Setup (New Users)
+
+1. **Start the app**
+   - Run `npm run dev` and open `http://localhost:3000`
+   - You'll see the InboxZero landing page
+
+2. **Set up your profile** (Required first step)
+   - Click "Go to Dashboard" → Click "Profile" in the header
+   - Fill in your information:
+     - **Skills**: Type skills like "React", "TypeScript" and press Enter to add as tags
+     - **Past Roles**: Add roles you've held (e.g., "Software Engineer")
+     - **Desired Roles**: Add roles you're seeking (e.g., "Staff Engineer")
+     - **Company Priorities**: Describe company types you're interested in:
+       - High Priority: "AI companies, unicorn startups ($1B+), modern tech like Figma, xAI"
+       - Medium Priority: "Enterprise companies like Salesforce, Oracle"
+       - Low Priority: "Old-school firms like PWC, accounting firms"
+     - **High Priority Keywords**: Add keywords like "interview", "offer", "deadline"
+   - Click "Save" - your preferences are stored locally
+
+3. **Connect Gmail**
+   - Go back to Dashboard
+   - Click "Sign in with Google"
+   - Select your Google account
+   - Grant permissions for Gmail and Calendar access
+   - You'll be redirected back with "Connected" status shown
+
+4. **Process your emails**
+   - Click "Process Emails" button
+   - Wait for processing (analyzes top 10 emails)
+   - Emails are prioritized based on your profile:
+     - **High Priority**: Matches your desired roles, skills, or high-priority companies
+     - **Medium Priority**: Relevant but not top priority
+     - **Low Priority**: Less relevant or spam
+
+5. **Review and take action**
+   - Emails are sorted by priority score (highest first)
+   - Each email shows:
+     - Priority badge (High/Medium/Low)
+     - Priority score (0-100)
+     - Definitive action item (what you should do)
+     - Company name (if detected)
+     - Calendar availability (if scheduling needed)
+   - Click on emails to see full details and suggestions
+
+### Understanding Your Dashboard
+
+**Header Status:**
+- Shows your email address when connected
+- "Connected" badge indicates Gmail is authenticated
+- "Profile" button to update preferences
+- "Logout" button to disconnect
+
+**Email Cards Show:**
+- **Priority Score**: 0-100 (higher = more important)
+- **Priority Level**: High (70+), Medium (40-69), Low (<40)
+- **Definitive Action**: Clear next step (e.g., "Schedule call with John for Friday")
+- **Company Category**: AI-determined company priority (high/medium/low)
+- **Intent**: What the email is asking for (schedule/deadline/multi-step/etc.)
+
+**How Prioritization Works:**
+- Emails matching your **desired roles** get +25 points
+- Emails from **high priority company types** get +30 points
+- Emails mentioning your **skills** get +15 points each
+- **Deadline/schedule** intents get +20-25 points
+- **High priority keywords** (interview, offer) get +15 points each
+- Final score determines High/Medium/Low priority
+
+### Troubleshooting
+
+**"OAuth not configured" error:**
+- Check that `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set in `.env`
+
+**"Access blocked" error:**
+- Add your email as a test user in Google Cloud Console → OAuth consent screen
+
+**"redirect_uri_mismatch" error:**
+- Make sure redirect URI in Google Cloud Console matches exactly:
+  - Dev: `http://localhost:3000/api/auth/callback`
+  - Production: `https://your-domain.vercel.app/api/auth/callback`
+
+**No emails showing:**
+- Make sure you have unread emails or emails in inbox
+- Check that Gmail API is enabled in Google Cloud Console
+- Verify you granted Gmail permissions during OAuth
+
+**Profile not saving:**
+- Check browser console for errors
+- Make sure you click "Save" button after making changes
+- Preferences are stored in browser localStorage
 
 ## 📋 Example Scenarios
 
@@ -139,6 +224,106 @@ An intelligent email assistant that reads context, checks your calendar, and gen
 - [ ] Priority-based routing
 - [ ] Smart batching
 - [ ] Auto-draft responses for approval
+
+## 🚀 Deploying to Vercel
+
+### Step 1: Deploy Your App
+
+1. **Push to GitHub** (if not already)
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Connect to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Sign in with GitHub
+   - Click "Add New Project"
+   - Import your `inboxZero` repository
+   - Click "Deploy" (Vercel will auto-detect Next.js settings)
+
+3. **Get your Vercel URL**
+   - After deployment, you'll get a URL like: `https://inboxzero-xxxxx.vercel.app`
+   - Copy this URL - you'll need it for OAuth setup
+
+### Step 2: Configure Google OAuth for Production
+
+**What is a redirect URI?** It's the URL where Google sends users back after they sign in. Google requires you to pre-register it for security.
+
+**How to add it:**
+
+1. **Go to Google Cloud Console**
+   - Open [console.cloud.google.com](https://console.cloud.google.com/)
+   - Make sure you're in the correct project
+
+2. **Navigate to Credentials**
+   - Click **"APIs & Services"** → **"Credentials"**
+   - Find your OAuth 2.0 Client ID (the one for InboxZero)
+   - Click on it to edit
+
+3. **Add the Production Redirect URI**
+   - Scroll to **"Authorized redirect URIs"** section
+   - Click **"+ ADD URI"**
+   - Enter: `https://your-vercel-app.vercel.app/api/auth/callback`
+     (Replace `your-vercel-app` with your actual Vercel domain from Step 1)
+   - Click **"ADD"**
+   - Click **"SAVE"** at the bottom
+
+4. **Important**: You should now have TWO redirect URIs:
+   - `http://localhost:3000/api/auth/callback` (for local dev)
+   - `https://your-vercel-app.vercel.app/api/auth/callback` (for production)
+
+### Step 3: Set Environment Variables in Vercel
+
+1. **Go to Vercel Dashboard**
+   - Click on your project
+   - Go to **Settings** → **Environment Variables**
+
+2. **Add these variables:**
+   ```
+   GOOGLE_CLIENT_ID=your_client_id_here
+   GOOGLE_CLIENT_SECRET=your_client_secret_here
+   GROK_API_KEY=your_grok_api_key_here
+   ```
+   (Or use `XAI_API_KEY` instead of `GROK_API_KEY` - both work)
+
+3. **Important**: 
+   - Select **Production**, **Preview**, and **Development** for each variable
+   - Click **Save** after each one
+
+4. **Redeploy**
+   - Go to **Deployments** tab
+   - Click the "..." menu on latest deployment
+   - Click **Redeploy** (this applies the new environment variables)
+
+### Step 4: Test OAuth
+
+1. **Visit your Vercel URL**: `https://your-app.vercel.app`
+2. **Click "Sign in with Google"**
+3. **It should work!** ✅
+
+### Troubleshooting OAuth on Vercel
+
+**"redirect_uri_mismatch" error:**
+- Make sure the redirect URI in Google Cloud Console matches **exactly**:
+  - Must be `https://` (not `http://`)
+  - Must match your actual Vercel domain
+  - No trailing slash
+  - Example: `https://inboxzero-abc123.vercel.app/api/auth/callback`
+
+**"Access blocked" error:**
+- Add your email as a test user in Google Cloud Console → OAuth consent screen → Test users
+
+**Environment variables not working:**
+- Make sure you selected all environments (Production, Preview, Development)
+- Redeploy after adding variables
+- Check Vercel logs: Deployments → Click deployment → Functions → View logs
+
+**Still not working?**
+- Check Vercel function logs for detailed error messages
+- Verify all environment variables are set correctly
+- Make sure you saved the redirect URI in Google Cloud Console (can take a few minutes to propagate)
 
 ## 📝 License
 

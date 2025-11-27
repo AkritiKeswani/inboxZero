@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchEmails } from "@/lib/gmail";
-import { analyzeEmail } from "@/lib/grok";
-import { getAvailableDates } from "@/lib/calendar";
+import { analyzeEmailWithClaude } from "@/lib/claude";
+import { getAvailableDates, checkAvailabilityForConstraint } from "@/lib/calendar";
 import { generateSuggestions } from "@/lib/suggestions";
 import { calculatePriorityScore, scoreToPriority, generateDefinitiveAction } from "@/lib/priority";
 import { DEFAULT_PREFERENCES } from "@/types/preferences";
+import { saveEmailRecord, saveSuggestions, isDatabaseConfigured } from "@/lib/db/client";
 
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken, preferences: userPreferences } = await request.json();
+    const { accessToken, preferences: userPreferences, userId } = await request.json();
 
     if (!accessToken) {
       return NextResponse.json(
@@ -36,8 +37,8 @@ export async function POST(request: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        // Analyze email with Grok (this is the expensive API call)
-        // Pass comprehensive user context so Grok can consider full profile when analyzing
+        // Analyze email with Claude (this is the expensive API call)
+        // Pass comprehensive user context so Claude can consider full profile when analyzing
         const userContext = {
           skills: preferences.skills,
           pastRoles: preferences.pastRoles,
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
           mediumPriorityCompanyTypes: preferences.mediumPriorityCompanyTypes,
           lowPriorityCompanyTypes: preferences.lowPriorityCompanyTypes,
         };
-        const analysis = await analyzeEmail(email, userContext);
+        const analysis = await analyzeEmailWithClaude(email, userContext);
 
         // Calculate priority score based on user preferences
         const priorityScore = calculatePriorityScore(email, analysis, preferences);
@@ -72,22 +73,30 @@ export async function POST(request: NextRequest) {
         const definitiveAction = generateDefinitiveAction(email, analysis, calculatedPriority, preferences);
 
         // Get calendar availability if scheduling is needed
-        // Only check calendar for high-priority scheduling requests
+        // Check calendar for scheduling requests (schedule_call or schedule intent)
         let calendarAvailabilities: any[] = [];
         if (
-          analysis.intent === "schedule" &&
-          analysis.priority === "high" &&
-          analysis.constraints.dates &&
-          analysis.constraints.dates.length > 0 &&
-          analysis.constraints.dates.length <= 3 // Limit to 3 dates max
+          (analysis.intent === "schedule_call" || analysis.intent === "schedule") &&
+          (analysis.priority === "high" || analysis.priority === "medium")
         ) {
           // Add delay before calendar API call
           await new Promise(resolve => setTimeout(resolve, 300));
           
-          calendarAvailabilities = await getAvailableDates(
-            accessToken,
-            analysis.constraints.dates.slice(0, 3) // Only check first 3 dates
-          );
+          // If we have time constraints (e.g., "Friday afternoon"), use that
+          if (analysis.constraints.timeConstraints) {
+            calendarAvailabilities = await checkAvailabilityForConstraint(
+              accessToken,
+              analysis.constraints.timeConstraints,
+              analysis.constraints.duration
+            );
+          } 
+          // Otherwise, use specific dates if available
+          else if (analysis.constraints.dates && analysis.constraints.dates.length > 0) {
+            calendarAvailabilities = await getAvailableDates(
+              accessToken,
+              analysis.constraints.dates.slice(0, 3) // Only check first 3 dates
+            );
+          }
         }
 
         const suggestions = generateSuggestions(
@@ -95,6 +104,17 @@ export async function POST(request: NextRequest) {
           analysis,
           calendarAvailabilities
         );
+
+        // Save to database if configured
+        if (isDatabaseConfigured() && userId) {
+          try {
+            await saveEmailRecord(userId, email, analysis);
+            await saveSuggestions(email.id, suggestions);
+          } catch (dbError) {
+            console.error("Error saving to database:", dbError);
+            // Continue processing even if DB save fails
+          }
+        }
 
         results.push({
           email: {

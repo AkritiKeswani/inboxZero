@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const oauth2Client = getAuthClient();
+    // Use the same redirect URI that was used in the auth request
+    // This must match exactly what Google expects
+    const origin = request.nextUrl.origin;
+    const redirectUri = `${origin}/api/auth/callback`;
+    
+    const oauth2Client = getAuthClient(redirectUri);
     const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.access_token) {

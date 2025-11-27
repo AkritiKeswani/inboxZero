@@ -12,19 +12,30 @@ export interface Email {
 }
 
 export interface EmailAnalysis {
-  intent: "schedule" | "deadline" | "multi-step" | "linkedin-followup" | "other";
+  intent: "schedule_call" | "send_resume" | "deadline" | "technical_assessment" | "multi_step_process" | "linkedin_followup" | "schedule" | "multi-step" | "linkedin-followup" | "other";
   constraints: {
     dates?: string[];
     times?: string[];
     deadlines?: string[];
     requirements?: string[];
+    duration?: string; // e.g., "30min", "1 hour"
+    timeConstraints?: string; // e.g., "Friday afternoon", "next week"
+    specificConstraints?: string[]; // Additional constraints like "only free Friday afternoon"
   };
   actionItems: string[];
+  requiredActions?: string[]; // What user needs to do
+  senderInfo?: {
+    name: string;
+    company?: string;
+    linkedInProfileUrl?: string;
+    email: string;
+  };
   linkedInProfileUrl?: string;
   platform: "email" | "linkedin";
   priority: "high" | "medium" | "low";
   companyCategory?: "high" | "medium" | "low" | "unknown"; // AI-determined company priority category
   companyName?: string; // Extracted company name from email
+  constraintsText?: string; // Human-readable constraints summary
 }
 
 export interface CalendarAvailability {

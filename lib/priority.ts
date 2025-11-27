@@ -158,11 +158,13 @@ export function calculatePriorityScore(
     }
   }
 
-  // Intent-based scoring
-  if (analysis.intent === "schedule") score += 20;
+  // Intent-based scoring (handle both new and legacy intent types)
+  if (analysis.intent === "schedule_call" || analysis.intent === "schedule") score += 20;
   if (analysis.intent === "deadline") score += 25;
-  if (analysis.intent === "multi-step") score += 15;
-  if (analysis.intent === "linkedin-followup") score += 10;
+  if (analysis.intent === "send_resume") score += 18;
+  if (analysis.intent === "technical_assessment") score += 22;
+  if (analysis.intent === "multi_step_process" || analysis.intent === "multi-step") score += 15;
+  if (analysis.intent === "linkedin_followup" || analysis.intent === "linkedin-followup") score += 10;
   if (analysis.intent === "other") score -= 10;
 
   // Deadline urgency (+20 if deadline is soon)
@@ -209,12 +211,31 @@ export function generateDefinitiveAction(
   const companyName = analysis.companyName || "";
   const companyContext = companyName ? ` at ${companyName}` : "";
   
-  if (analysis.intent === "schedule") {
+  if (analysis.intent === "schedule_call" || analysis.intent === "schedule") {
     if (analysis.constraints.dates && analysis.constraints.dates.length > 0) {
       const date = analysis.constraints.dates[0];
       return `Schedule call with ${fromName}${companyContext} for ${date}`;
     }
+    if (analysis.constraints.timeConstraints) {
+      return `Schedule call with ${fromName}${companyContext} for ${analysis.constraints.timeConstraints}`;
+    }
     return `Respond to ${fromName}${companyContext} with your availability`;
+  }
+
+  if (analysis.intent === "send_resume") {
+    const deadline = analysis.constraints.deadlines?.[0];
+    if (deadline) {
+      return `Send resume to ${fromName}${companyContext} by ${deadline}`;
+    }
+    return `Send resume to ${fromName}${companyContext}`;
+  }
+
+  if (analysis.intent === "technical_assessment") {
+    const deadline = analysis.constraints.deadlines?.[0];
+    if (deadline) {
+      return `Complete technical assessment from ${fromName}${companyContext} by ${deadline}`;
+    }
+    return `Complete technical assessment from ${fromName}${companyContext}`;
   }
 
   if (analysis.intent === "deadline") {
@@ -226,15 +247,16 @@ export function generateDefinitiveAction(
     return `Complete deadline task from ${fromName}${companyContext}`;
   }
 
-  if (analysis.intent === "multi-step") {
-    if (analysis.actionItems.length > 0) {
-      return `Start step 1: ${analysis.actionItems[0]}${companyContext}`;
+  if (analysis.intent === "multi_step_process" || analysis.intent === "multi-step") {
+    const actionItems = analysis.requiredActions || analysis.actionItems;
+    if (actionItems.length > 0) {
+      return `Start step 1: ${actionItems[0]}${companyContext}`;
     }
     return `Begin multi-step process with ${fromName}${companyContext}`;
   }
 
-  if (analysis.intent === "linkedin-followup") {
-    if (analysis.linkedInProfileUrl) {
+  if (analysis.intent === "linkedin_followup" || analysis.intent === "linkedin-followup") {
+    if (analysis.linkedInProfileUrl || analysis.senderInfo?.linkedInProfileUrl) {
       return `Follow up with ${fromName}${companyContext} on LinkedIn`;
     }
     return `Follow up with ${fromName}${companyContext}`;

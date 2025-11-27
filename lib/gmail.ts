@@ -6,18 +6,21 @@ const SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
 ];
 
-export function getAuthClient() {
+export function getAuthClient(redirectUri?: string) {
+  // Use provided redirectUri, or fall back to env var, or construct from request
+  const redirect = redirectUri || process.env.GOOGLE_REDIRECT_URI;
+  
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
+    redirect
   );
 
   return oauth2Client;
 }
 
-export function getAuthUrl(): string {
-  const oauth2Client = getAuthClient();
+export function getAuthUrl(redirectUri?: string): string {
+  const oauth2Client = getAuthClient(redirectUri);
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
@@ -26,7 +29,7 @@ export function getAuthUrl(): string {
 }
 
 export async function getGmailClient(accessToken: string) {
-  const oauth2Client = getAuthClient();
+  const oauth2Client = getAuthClient(); // Redirect URI not needed for API calls, only for auth flow
   oauth2Client.setCredentials({ access_token: accessToken });
   return google.gmail({ version: "v1", auth: oauth2Client });
 }

@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthUrl } from "@/lib/gmail";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Check if environment variables are set
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -28,7 +28,12 @@ export async function GET() {
       );
     }
 
-    const authUrl = getAuthUrl();
+    // Dynamically determine redirect URI based on request origin
+    // This ensures it works in both dev (localhost) and production (Vercel)
+    const origin = request.headers.get("origin") || request.nextUrl.origin;
+    const redirectUri = `${origin}/api/auth/callback`;
+    
+    const authUrl = getAuthUrl(redirectUri);
     return NextResponse.json({ authUrl });
   } catch (error: any) {
     console.error("Error generating auth URL:", error);
