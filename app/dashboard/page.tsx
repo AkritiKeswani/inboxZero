@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Email, Suggestion } from "@/types";
-import { Mail, Calendar, Clock, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Mail, Calendar, Clock, ExternalLink, CheckCircle2, LogOut, User } from "lucide-react";
+import Link from "next/link";
 
 interface EmailResult {
   email: Email;
   analysis: any;
   suggestions: Suggestion[];
+  priorityScore?: number;
+  definitiveAction?: string;
 }
 
 export default function Dashboard() {
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailResults, setEmailResults] = useState<EmailResult[]>([]);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     // Check URL for token from OAuth callback
@@ -29,11 +31,23 @@ export default function Dashboard() {
       localStorage.setItem("google_access_token", tokenFromUrl);
       setAccessToken(tokenFromUrl);
       setIsAuthenticated(true);
+      // Fetch user profile
+      fetchUserProfile(tokenFromUrl);
       // Clean up URL
       window.history.replaceState({}, "", "/dashboard");
     } else if (error) {
       console.error("OAuth error:", error);
-      alert(`Authentication failed: ${error}`);
+      // Show helpful error message
+      if (error === "access_denied" || error.includes("blocked")) {
+        alert(
+          "Access blocked. Make sure you've added your email as a test user in Google Cloud Console.\n\n" +
+          "Go to: APIs & Services > OAuth consent screen > Test users\n" +
+          "Add: akritikeswani76@gmail.com\n\n" +
+          "See FIX_ACCESS_BLOCKED.md for details."
+        );
+      } else {
+        alert(`Authentication failed: ${error}`);
+      }
       window.history.replaceState({}, "", "/dashboard");
     } else {
       // Check if we have an access token in localStorage
@@ -41,9 +55,36 @@ export default function Dashboard() {
       if (token) {
         setAccessToken(token);
         setIsAuthenticated(true);
+        fetchUserProfile(token);
       }
     }
   }, []);
+
+  const fetchUserProfile = async (token: string) => {
+    try {
+      const response = await fetch("/api/user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ accessToken: token }),
+      });
+      const data = await response.json();
+      if (data.email) {
+        setUserEmail(data.email);
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("google_access_token");
+    setAccessToken(null);
+    setIsAuthenticated(false);
+    setUserEmail(null);
+    setEmailResults([]);
+  };
 
   const handleGoogleAuth = async () => {
     try {
@@ -62,17 +103,40 @@ export default function Dashboard() {
 
     setIsLoading(true);
     try {
+      // Load user preferences from localStorage
+      const savedPrefs = localStorage.getItem("inboxzero_preferences");
+      const preferences = savedPrefs ? JSON.parse(savedPrefs) : null;
+
       const response = await fetch("/api/emails", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ accessToken }),
+        body: JSON.stringify({ 
+          accessToken,
+          preferences, // Pass preferences to server for priority calculation
+        }),
       });
 
       const data = await response.json();
       if (data.results) {
-        setEmailResults(data.results);
+        // Parse dates back from ISO strings to Date objects
+        // Sort by priority score (highest first)
+        const parsedResults = data.results
+          .map((result: any) => ({
+            ...result,
+            email: {
+              ...result.email,
+              date: new Date(result.email.date), // Convert string back to Date
+            },
+          }))
+          .sort((a: EmailResult, b: EmailResult) => {
+            // Sort by priority score (highest first)
+            const scoreA = a.priorityScore || 0;
+            const scoreB = b.priorityScore || 0;
+            return scoreB - scoreA;
+          });
+        setEmailResults(parsedResults);
       }
     } catch (error) {
       console.error("Error processing emails:", error);
@@ -83,20 +147,19 @@ export default function Dashboard() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Connect Your Gmail</CardTitle>
-            <CardDescription>
-              Connect your Gmail account to start analyzing your job search emails
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleGoogleAuth} className="w-full">
-              Connect with Google
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center p-8 bg-white">
+        <div className="w-full max-w-md border border-gray-200 p-8">
+          <h2 className="text-2xl font-semibold mb-2 text-black">Connect Your Gmail</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Connect your Gmail account to start analyzing your job search emails
+          </p>
+          <button
+            onClick={handleGoogleAuth}
+            className="w-full px-4 py-3 bg-black text-white rounded-sm hover:bg-gray-900 transition-colors"
+          >
+            Connect with Google
+          </button>
+        </div>
       </div>
     );
   }
@@ -104,89 +167,118 @@ export default function Dashboard() {
   const allSuggestions = emailResults.flatMap((result) => result.suggestions);
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-white">
+      {/* Header with auth status */}
+      <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-8 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-black">InboxZero</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            {userEmail && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <User className="h-4 w-4" />
+                <span>{userEmail}</span>
+                <span className="text-green-600">• Connected</span>
+              </div>
+            )}
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              <User className="h-4 w-4" />
+              Profile
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto p-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">InboxZero</h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             AI Email Assistant for Optimized Job Search
           </p>
         </div>
 
-        <div className="mb-6">
-          <Button onClick={handleProcessEmails} disabled={isLoading}>
+        <div className="mb-8">
+          <button
+            onClick={handleProcessEmails}
+            disabled={isLoading}
+            className="px-6 py-3 bg-black text-white rounded-sm hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             {isLoading ? "Processing..." : "Process Emails"}
-          </Button>
+          </button>
         </div>
 
         {allSuggestions.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Action Items</h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-12">
+            <h2 className="text-2xl font-semibold mb-6 text-black">Action Items</h2>
+            <div className="grid gap-4 md:grid-cols-2">
               {allSuggestions.map((suggestion) => {
                 const email = emailResults.find(
                   (r) => r.email.id === suggestion.emailId
                 )?.email;
 
                 return (
-                  <Card key={suggestion.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">
-                          {suggestion.title}
-                        </CardTitle>
-                        {suggestion.type === "linkedin-followup" && (
-                          <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </div>
-                      <CardDescription>
+                  <div key={suggestion.id} className="border border-gray-200 p-6">
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold mb-1 text-black">
+                        {suggestion.title}
+                      </h3>
+                      <p className="text-sm text-gray-600">
                         {email?.fromName} • {email?.subject}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm mb-4">{suggestion.description}</p>
-                      
-                      {suggestion.suggestedTime && (
-                        <div className="flex items-center gap-2 mb-2 text-sm">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(suggestion.suggestedTime).toLocaleString()}</span>
-                        </div>
-                      )}
+                      </p>
+                    </div>
+                    
+                    <p className="text-sm text-gray-700 mb-4">{suggestion.description}</p>
+                    
+                    {suggestion.suggestedTime && (
+                      <div className="flex items-center gap-2 mb-2 text-sm text-gray-600">
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date(suggestion.suggestedTime).toLocaleString()}</span>
+                      </div>
+                    )}
 
                       {suggestion.deadline && (
-                        <div className="flex items-center gap-2 mb-2 text-sm">
+                        <div className="flex items-center gap-2 mb-2 text-sm text-gray-600">
                           <Clock className="h-4 w-4" />
-                          <span>Due: {suggestion.deadline.toLocaleDateString()}</span>
+                          <span>Due: {new Date(suggestion.deadline).toLocaleDateString()}</span>
                         </div>
                       )}
 
-                      {suggestion.linkedInProfileUrl && (
-                        <a
-                          href={suggestion.linkedInProfileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary hover:underline flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          View LinkedIn Profile
-                        </a>
-                      )}
+                    {suggestion.linkedInProfileUrl && (
+                      <a
+                        href={suggestion.linkedInProfileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-black hover:underline flex items-center gap-1 mb-4"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View LinkedIn Profile
+                      </a>
+                    )}
 
-                      {suggestion.actionItems.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-xs font-semibold mb-2">Action Items:</p>
-                          <ul className="space-y-1">
-                            {suggestion.actionItems.map((item, idx) => (
-                              <li key={idx} className="text-xs flex items-start gap-2">
-                                <CheckCircle2 className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                    {suggestion.actionItems.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <p className="text-xs font-semibold mb-2 text-black">Action Items:</p>
+                        <ul className="space-y-2">
+                          {suggestion.actionItems.map((item, idx) => (
+                            <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
+                              <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0 text-black" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -195,43 +287,56 @@ export default function Dashboard() {
 
         {emailResults.length > 0 && (
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Recent Emails</h2>
+            <h2 className="text-2xl font-semibold mb-6 text-black">Recent Emails</h2>
             <div className="space-y-4">
-              {emailResults.map((result) => (
-                <Card key={result.email.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
+              {emailResults.map((result) => {
+                const priorityScore = result.priorityScore || 0;
+                return (
+                  <div key={result.email.id} className="border border-gray-200 p-6">
+                    <div className="mb-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-black flex items-center gap-2">
                           <Mail className="h-4 w-4" />
                           {result.email.subject}
-                        </CardTitle>
-                        <CardDescription>
-                          {result.email.fromName} • {result.email.date.toLocaleDateString()}
-                          {result.email.isLinkedInNotification && (
-                            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
-                              LinkedIn
-                            </span>
-                          )}
-                        </CardDescription>
+                        </h3>
+                        <span className={`text-xs px-2 py-1 border ${
+                          priorityScore >= 70 ? "border-red-500 text-red-700 bg-red-50" :
+                          priorityScore >= 40 ? "border-yellow-500 text-yellow-700 bg-yellow-50" :
+                          "border-gray-300 text-gray-600"
+                        }`}>
+                          {priorityScore >= 70 ? "HIGH" : priorityScore >= 40 ? "MEDIUM" : "LOW"}
+                        </span>
                       </div>
+                      <p className="text-sm text-gray-600">
+                        {result.email.fromName} • {result.email.date.toLocaleDateString()}
+                        {result.email.isLinkedInNotification && (
+                          <span className="ml-2 px-2 py-0.5 border border-gray-300 text-xs">
+                            LinkedIn
+                          </span>
+                        )}
+                      </p>
+                      {result.definitiveAction && (
+                        <p className="text-sm font-medium text-black mt-2">
+                          → {result.definitiveAction}
+                        </p>
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-gray-700 mb-4">
                       {result.email.snippet}
                     </p>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-2 py-1 bg-secondary rounded">
+                      <span className="text-xs px-2 py-1 border border-gray-300">
                         {result.analysis.intent}
                       </span>
-                      <span className="text-xs px-2 py-1 bg-secondary rounded">
-                        {result.analysis.priority} priority
-                      </span>
+                      {priorityScore > 0 && (
+                        <span className="text-xs px-2 py-1 border border-gray-300">
+                          Score: {priorityScore}/100
+                        </span>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

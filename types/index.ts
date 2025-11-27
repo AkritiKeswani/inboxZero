@@ -56,3 +56,6 @@ export interface LinkedInContact {
   platform: "linkedin" | "email";
 }
 
+// Re-export preferences
+export * from "./preferences";
+

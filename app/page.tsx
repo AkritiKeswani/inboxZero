@@ -2,13 +2,13 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-8">InboxZero</h1>
-        <p className="text-lg mb-4">AI Email Assistant for Optimized Job Search</p>
+    <main className="flex min-h-screen flex-col items-center justify-center p-8 bg-white">
+      <div className="max-w-2xl w-full text-center">
+        <h1 className="text-5xl font-bold mb-4 text-black">InboxZero</h1>
+        <p className="text-lg mb-8 text-gray-600">AI Email Assistant for Optimized Job Search</p>
         <Link
           href="/dashboard"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          className="inline-block px-6 py-3 bg-black text-white rounded-sm hover:bg-gray-900 transition-colors"
         >
           Go to Dashboard
         </Link>

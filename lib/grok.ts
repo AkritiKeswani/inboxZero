@@ -4,37 +4,28 @@ const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
 const XAI_API_KEY = process.env.GROK_API_KEY || process.env.XAI_API_KEY || "";
 
 export async function analyzeEmail(email: Email): Promise<EmailAnalysis> {
-  const prompt = `Analyze this email and extract key information for a job search context.
+  // Shorter, more focused prompt to reduce token usage and API costs
+  // Limit body to first 800 chars to avoid hitting token limits
+  const bodyPreview = email.body.substring(0, 800);
+  
+  const prompt = `Analyze job search email. Return JSON only:
 
-Email from: ${email.fromName} (${email.from})
+From: ${email.fromName}
 Subject: ${email.subject}
-Body: ${email.body}
-Is LinkedIn notification: ${email.isLinkedInNotification}
-${email.linkedInProfileUrl ? `LinkedIn URL: ${email.linkedInProfileUrl}` : ""}
+Body: ${bodyPreview}${email.body.length > 800 ? "..." : ""}
+LinkedIn: ${email.isLinkedInNotification ? "Yes" : "No"}
 
-Please extract:
-1. Intent: One of "schedule", "deadline", "multi-step", "linkedin-followup", or "other"
-2. Constraints: Any dates, times, deadlines, or requirements mentioned
-3. Action items: What the user needs to do
-4. Platform: "email" or "linkedin" based on the source
-5. Priority: "high", "medium", or "low" based on urgency and importance
+Extract: intent (schedule/deadline/multi-step/linkedin-followup/other), constraints (dates/times/deadlines/requirements), actionItems, priority (high/medium/low), platform (email/linkedin).
 
-Return your response as a JSON object with this structure:
+JSON format:
 {
-  "intent": "schedule" | "deadline" | "multi-step" | "linkedin-followup" | "other",
-  "constraints": {
-    "dates": ["array of date strings if mentioned"],
-    "times": ["array of time strings if mentioned"],
-    "deadlines": ["array of deadline strings if mentioned"],
-    "requirements": ["array of requirements if mentioned"]
-  },
-  "actionItems": ["array of action items"],
-  "linkedInProfileUrl": "${email.linkedInProfileUrl || ""}",
-  "platform": "email" | "linkedin",
-  "priority": "high" | "medium" | "low"
-}
-
-IMPORTANT: Return ONLY valid JSON, no additional text or markdown formatting.`;
+  "intent": "schedule"|"deadline"|"multi-step"|"linkedin-followup"|"other",
+  "constraints": {"dates":[], "times":[], "deadlines":[], "requirements":[]},
+  "actionItems": [],
+  "platform": "${email.isLinkedInNotification ? "linkedin" : "email"}",
+  "priority": "high"|"medium"|"low",
+  "linkedInProfileUrl": "${email.linkedInProfileUrl || ""}"
+}`;
 
   try {
     const response = await fetch(XAI_API_URL, {
@@ -57,6 +48,7 @@ IMPORTANT: Return ONLY valid JSON, no additional text or markdown formatting.`;
         ],
         temperature: 0,
         stream: false,
+        max_tokens: 512, // Limit response size to reduce costs and speed
       }),
     });
 

@@ -91,15 +91,31 @@ export async function getAvailableDates(
 ): Promise<CalendarAvailability[]> {
   const availabilities: CalendarAvailability[] = [];
 
-  for (const date of requestedDates) {
-    const availability = await checkAvailability(
-      accessToken,
-      date,
-      startTime,
-      endTime
-    );
-    if (availability.availableSlots.length > 0) {
-      availabilities.push(availability);
+  // Limit to first 3 dates to avoid too many API calls
+  const datesToCheck = requestedDates.slice(0, 3);
+
+  for (let i = 0; i < datesToCheck.length; i++) {
+    const date = datesToCheck[i];
+    
+    // Add delay between calendar API calls
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    try {
+      const availability = await checkAvailability(
+        accessToken,
+        date,
+        startTime,
+        endTime
+      );
+      if (availability.availableSlots.length > 0) {
+        availabilities.push(availability);
+      }
+    } catch (error) {
+      console.error(`Error checking availability for ${date}:`, error);
+      // Continue with next date instead of failing completely
+      continue;
     }
   }
 

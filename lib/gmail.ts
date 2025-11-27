@@ -106,20 +106,28 @@ export async function fetchEmails(
     // Default query: unread or in inbox, but allow custom queries
     const emailQuery = query || "is:unread OR in:inbox";
 
-    const response = await gmail.users.messages.list({
-      userId: "me",
-      maxResults,
-      q: emailQuery,
-    });
+  // Fetch most recent emails, prioritizing unread and recent
+  const response = await gmail.users.messages.list({
+    userId: "me",
+    maxResults,
+    q: emailQuery,
+    orderBy: "internalDate", // Get most recent first
+  });
 
     const messages = response.data.messages || [];
     const emails: Email[] = [];
 
-    // Process messages in parallel (with limit to avoid rate limits)
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-      const batch = messages.slice(i, i + BATCH_SIZE);
-      const batchPromises = batch.map(async (message) => {
+    // Process messages sequentially with small delays to avoid rate limits
+    // Gmail API allows 250 quota units/second, each message.get() uses 5 units
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      
+      // Add delay between Gmail API calls (50ms = ~20 calls/second, well under limit)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      const processMessage = async () => {
         if (!message.id) return null;
 
         try {
@@ -206,10 +214,12 @@ export async function fetchEmails(
           console.error(`Error fetching message ${message.id}:`, error);
           return null;
         }
-      });
+      };
 
-      const batchResults = await Promise.all(batchPromises);
-      emails.push(...batchResults.filter((email) => email !== null));
+      const result = await processMessage();
+      if (result) {
+        emails.push(result);
+      }
     }
 
     return emails;
