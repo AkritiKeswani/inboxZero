@@ -88,13 +88,27 @@ export default function Dashboard() {
 
   const handleGoogleAuth = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/auth/google");
       const data = await response.json();
+      
+      if (data.error) {
+        // Show error message to user
+        alert(`OAuth Error: ${data.message || data.error}\n\n${data.details || ""}`);
+        console.error("OAuth error:", data);
+        return;
+      }
+      
       if (data.authUrl) {
         window.location.href = data.authUrl;
+      } else {
+        alert("Failed to get authentication URL. Please check server logs.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error initiating auth:", error);
+      alert(`Failed to connect: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -155,9 +169,10 @@ export default function Dashboard() {
           </p>
           <button
             onClick={handleGoogleAuth}
-            className="w-full px-4 py-3 bg-black text-white rounded-sm hover:bg-gray-900 transition-colors"
+            disabled={isLoading}
+            className="w-full px-4 py-3 bg-black text-white rounded-sm hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Connect with Google
+            {isLoading ? "Connecting..." : "Connect with Google"}
           </button>
         </div>
       </div>

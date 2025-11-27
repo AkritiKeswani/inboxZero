@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthClient } from "@/lib/gmail";
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");

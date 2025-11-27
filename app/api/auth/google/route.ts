@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUrl } from "@/lib/gmail";
 
+// Force dynamic rendering since we use request headers
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     // Check if environment variables are set
